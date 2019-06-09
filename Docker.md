@@ -53,7 +53,7 @@
 
 ​	国内的公开仓库：阿里云、网易云等
 
-## 安装
+## Docker安装
 
 ​	1、安装必要的软件包以允许apt通过HTTPS使用存储库
 
@@ -149,3 +149,311 @@ sudo systemctl daemon-reload
 sudo systemctl restart docker
 ```
 
+#### HelloWorld
+
+```shell
+docker run hello-world
+```
+
+![](img/hw.png)
+
+### 底层原理（简单说明）
+
+​	Docker是一个Client-Server结构的系统，Docker守护进程运行在主机上，然后通过Socket连接从客户端访问，守护进程从客户端接受命令并管理运行在主机上的容器。容器是一个运行时环境。
+
+​	Docker有比虚拟机更少的抽象层。由于Docker不需要Hypervisor实现硬件资源虚拟化，运行在docker容器上的程序直接使用的都是实际物理机的硬件资源。因此在cpu、内存利用率上docker将会有明显优势。
+
+​	Docker利用的是宿主机的内核，而不需要Guest OS。因此，当新建一个容器时，Docker不需要和虚拟机一样重新加载一个操作系统内核。然而避免引寻、加载操作系统内核是个比较费时费资源的过程，当新建一个虚拟机时，虚拟机软件需要加载Guest OS，整个新建过程是分钟级别。而Docker由于直接利用宿主机的操作系统，则省略了这个过程，因此新建一个Docker容器仅需几秒。
+
+|            | Docker容器         | 虚拟机                 |
+| ---------- | ------------------ | ---------------------- |
+| 操作系统   | 与宿主共享         | 宿主机OS上运行虚拟机OS |
+| 存储大小   | 镜像小             | 镜像庞大               |
+| 运行性能   | 几何无额外性能损耗 | 额外CPU、内存损耗      |
+| 移植性     | 轻便、灵活         | 与虚拟化技术耦合度高   |
+| 硬件亲和性 | 面向软件开发       | 面向硬件运维           |
+
+## Docker常用命令
+
+### 帮助命令
+
+`docker version`
+
+`docker info`
+
+`docker --help`
+
+### 镜像命令
+
+---
+
+列出本地主机上的镜像 ：`docker images`  
+
+![](img/images.png)
+
+>REPOSITORY：镜像的仓库源
+>TAG：镜像的标签
+>IMAGE ID：镜像ID
+>CREATED：镜像创建时间
+>SIZE：镜像大小
+
+​	== 同一仓库源可以有多个TAG，代表这个仓库源的不同版本，使用REPOSITORY:TAG来定义不同的镜像 ==
+
+​	**options：**
+
+> -a ：列出本地所有的镜像
+> -q：只显示镜像ID
+> --digests：显示镜像的摘要信息
+> --no-trunc：显示完整的镜像信息
+
+---
+
+`docker search 镜像名`
+
+​	http://hub.docker.com上查询镜像
+
+​	**options：**
+
+>--no-trunc：显示完整的镜像描述
+>-s：列出收藏数不小于指定值的镜像
+>--automated：只列出automated build类型的镜像
+
+---
+
+ 下载镜像：`docker pull 镜像名` 
+
+---
+
+删除镜像：`docker rmi 镜像ID`
+
+删除全部镜像：`docker rmi -f $(docker images -qa)`
+
+### 容器命令
+
+新建并启动容器：`docker run [OPTIONS] image [COMMAND [ARG...]` 
+
+​	**options:**
+
+>--name="容器的新名称" ： 为容器指定一个名称
+>
+>-d：后台运行容器，并返回容器ID，即启动守护式容器
+>
+>-i：以交互模式运行容器，通常与-t 同时使用
+>
+>-t：为容器重新分配一个伪输入终端，通常与-i 同时使用
+>
+>-P：随机端口映射
+>
+>-p：指定端口映射，有一下四中格式
+>
+>​		ip:hostPort:containerPort
+>
+>​		ip::containerPort
+>
+>​		hostPort:containerPort
+>
+>​		containerPort
+
+![1559957359798](./img/1559957359798.png)
+
+列出所有正在运行的容器：`docker ps [OPTIONS]` 
+
+​	**options:**
+
+>-a ：列出当前所有正在运行的容器+历史上运行过的
+>
+>-l ：显示最近创建的容器
+>
+>-n ：显示最近n个创建的容器
+>
+>-q ：静默模式，只显示容器编号
+>
+>-no-trunc ：不截断输出
+
+![1559957834647](./img/1559957834647.png)
+
+退出容器： `exit（容器停止退出）/ctrl+p+q（容器不停止退出）`
+
+启动容器：`docker start 容器ID/容器名` 
+
+重启容器：`docker restart 容器ID/容器名`
+
+停止容器：`docker stop 容器ID/容器名`
+
+强制停止容器：`docker kill 容器ID/容器名`
+
+删除容器：`docker rm 容器ID/容器名`
+
+​				`docker rm -f $(docker ps -a -q)`
+
+​				`docker ps -a -q | xargs docker rm`
+
+启动守护式容器：`docker run -d 镜像`
+
+>​	该方式启动容器后，通过`docker ps -a` 查看时，显示该容器已退出原因：
+>
+>​	这是docker的机制，容器为后台进程模式运行，就导致docker前台没有运行的应用，这样的容器后台启动后，会立即自杀，因为该容器会觉得自己没事做了，所以**Docker容器后台运行，就必须有一个前台进程**
+>
+>`docker run -d centos /bin/sh -c "while true;do echo hello docker;sleep 2;done"`：以后台进程启动容器后，调用容器中的sh执行后面的脚本，该方式运行后，容器进程不会自杀
+
+查看容器日志：`docker logs -f -t --tail 容器ID`
+
+>-t：加入时间戳
+>
+>-f：跟随最新的日志打印
+>
+>--tail 数字：显示最后多少条
+
+查看容器内运行的进程：`docker top 容器ID`
+
+查看容器内部细节：`docker inspect 容器ID`
+
+进入正在运行的容器并以命令行交互：
+
+​	1、`docker exec -it 容器ID bashShell`：该方式是在容器中打开新的终端，并且可以启动新的进程（该容器交互中，执行exit不会关闭容器，因为相当于关闭了以该方式新建的终端，并没有关闭容器启动命令的终端）
+
+​	2、`docker attach 容器ID`：该方式直接进入容器启动命令的终端，不会启动新的进程
+
+![1559961563705](./img/1559961563705.png)
+
+ 从容器内拷贝文件到主机：`docker cp 容器ID:容器内路径  目标主机路径`
+
+## Docker镜像
+
+​	镜像是一种轻量级、可执行的独立软件包，用来打包软件运行环境和基于运行环境开发的软件，他包含运行某个软件所需要的所有内容，包括代码、运行时的库、环境变量和配置文件。
+
+​	UnionFS（联合文件系统）是Docker镜像的基础。镜像通过分层来继承，基于基础镜像体（没有父镜像），可以制作各种具体的应用镜像。
+
+### Docker镜像加载原理
+
+>​	Docker的镜像实际上由一层一层的文件系统组成，这种层级的文件系统为UnionFS。
+>
+>​	bootfs（boot file system）主要包含bootloader和kernel。bootloader主要引导加载kernel，linux刚启动时会加载bootfs文件系统	，在Dokcer镜像的最底层是bootfs。这一层与典型的Linux/Unix系统一样，包含boot加载器和内核。当boot加载完成之后整个内核就都在内存中了，此时内存的使用权已由bootfs转交到内核，此时系统也会卸载bootfs。
+>
+>​	rootfs（root file system），在bootfs之上，包含的就是典型Linux系统中的/dev、/proc、/bin、/etc等标准目录和文件。rootfs就是各种不同的操作系统发行版。
+>
+>​	对于一个精简的OS，rootfs可以很小，只需要包括最基本的命令、工具和程序库，因为底层直接使用Host的kernel，本身只需要提供rootfs即可。
+
+### 特点
+
+>Docker镜像都是只读的
+>
+>当容器启动时，一个新的可写层被加载到镜像的顶部
+>
+>这一层通常被成为“容器层”，“容器层”之下的都叫“镜像层”
+
+### commit操作
+
+提交容器副本为一个新的镜像：`docker commit -m="提交的描述信息" -a="作者" 容器ID  创建的目标镜像名:[标签名]`
+
+**案例：**
+
+1、运行tomcat镜像生成容器
+ ​	`docker run -it -p 8888:8080 tomcat`
+
+ ​	将本地8888端口与容器中8080端口映射
+
+![1560051229610](./img/1560051229610.png)
+
+![1560051256639](./img/1560051256639.png)
+
+ 2、修改生产容器中的内容，如：删除tomcat中的docs
+
+![1560051558615](./img/1560051558615.png)
+
+![1560051580380](./img/1560051580380.png)
+
+ 3、以当前修改后的容器为模板，commit新镜像lov/tomcat01
+
+![1560051745977](./img/1560051745977.png)
+
+## Docker容器数据卷
+
+​	Docker容器产生的数据，如果不通过commit生产新的镜像，那么容器删除后，数据自然就没了。为了能保存数据在docker中，就使用卷。
+
+​	卷能实现容器的持久化和容器间继承、共享数据
+
+> ​	卷就是目录或文件，存在于一个或多个容器中，由docker挂载到容器，但不属于联合文件系统，因此能够绕过联合文件系统提供一些用于持续存储或共享数据的特性。
+>
+> ​	卷的设计目的就是数据的持久化，完全独立于容器的生存周期，因此Docker不会在容器删除时删除其挂载的数据卷
+>
+> ​	特点：
+>
+> ​	1、数据卷可子啊容器之间共享或重用数据
+>
+> ​	2、卷中的更改可以直接生效
+>
+> ​	3、数据卷中的更改不会包含在镜像的更新中
+>
+> ​	4、数据卷的生命周期一直持续到没有容器使用为止
+
+### 容器内添加
+
+#### 命令方式
+
+​	`docker run -it -v /宿主机绝对路径目录:/容器内目录:权限 镜像名`
+
+​	如果宿主机与容器内都没有对应的目录，会自动创建
+
+![1560086366165](./img/1560086366165.png)
+
+​	通过`docker inspect` 查看该容器的挂载，默认当前容器的目录为读写
+
+![1560086393697](./img/1560086393697.png)
+
+​	权限限制，限制的是容器中的目录权限，以下限制为只读权限，容器对其中的文件只读，当宿主机文件修改，容器对应文件也会改变。
+
+![1560086895226](./img/1560086895226.png)
+
+![1560087125313](./img/1560087125313.png)
+
+#### DockerFile添加
+
+​	1、新建dockerFile文件，在DockerFile中使用`VOLUME`指令给镜像添加一个或多个数据卷
+
+```sh
+FROM centos
+VOLUME ["/dataTest1","/dataTest2"]
+CMD echo "finished ,.........."
+CMD /bin/bash
+```
+
+​		相当于`docker run -it -v /默认分配目录1:/dataTest1 -v /默认分配目录2:/dataTest2 centos /bin/bash`  
+
+​	2、File构建
+
+​	`docker build -f ./dockerFile  -t lov/centos:1.0 .`
+
+![1560088607508](./img/1560088607508.png)
+
+​	3、run容器，`inspect`分析容器中目录对应的宿主机目录（默认分配目录）
+
+![1560088764546](./img/1560088764546.png)
+
+### 数据卷容器
+
+​	命名的容器挂载数据卷，其他容器通过挂载这个（父容器）实现数据共享，挂载数据卷的容器，称之为数据卷容器。
+
+**--volumes-from**
+
+​	`sudo docker run -it --name="a1" lov/centos:1.0`
+
+​	`sudo docker run -it --name="a2" --volumes-from a1 lov/centos:1.0`
+
+​	`sudo docker run -it --name="a3" --volumes-from a2 lov/centos:1.0`
+
+​	a1、a2、a3三个容器，以a1为源头，一层层传递，三个容器的对应文件都是共享的，无论删除任意容器，重启后仍能共享。
+
+​	该命令相当于指定当前容器中的卷目录对应的宿主机目录，与指定容器的宿主机目录一致。所以以上三个容器，共用同一个宿主机目录地址。
+
+## DockerFile解析
+
+​	DockerFile是用来构建Docker镜像的构建文件，是由一系列命令和参数构成的脚本。
+
+​	构建步骤：编写dockerfile文件 -> docker build -> docker run 	
+
+![1560090669600](./img/1560090669600.png)
+
+## Docker常用安装
+
+## 本地镜像发布到阿里云
