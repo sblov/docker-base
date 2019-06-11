@@ -534,6 +534,84 @@ CMD /bin/bash
 >
 >![1560177312062](./img/1560177312062.png)
 
+**2、docker run之后的参数会被当做参数传递给ENTRYPOINT，之后形成新的命令组合**
+
+> FROM centos
+>
+> RUN yum install -y curl
+>
+> ENTRYPOINT ["curl","-s","http://www.baidu.com"]
+
+​	运行容器时添加参数`-i`，相当于`ENTRYPOINT ["curl","-s"，"-i	", http://www.baidu.com"]`
+
+![1560260650047](./img/1560260650047.png)
+
+**3、ONBUILD 案例**
+
+> FROM centos
+>
+> RUN yum install -y curl
+>
+> ENTRYPOINT ["curl","-s","http://www.baidu.com"]
+>
+> ONBUILD RUN echo "parent images onbuild ------------------ success!"
+
+​	`sudo docker build -f ./mycentos  -t mycentos:2.1 .`
+
+> FROM mycentos:2.1
+>
+> RUN yum install -y curl
+>
+> ENTRYPOINT ["curl","-s","http://www.baidu.com"]
+
+![1560261162415](./img/1560261162415.png)
+
+**4、自定义tomcat**
+
+> FROM	centos
+> MAINTAINER		lov<sb_lov@sina.com>
+>
+> #拷贝当前目录文件进到指定目录
+>
+> COPY	c.txt		/usr/local/cincontainer.txt
+>
+> #文件位于当前dockerfile文件所在的目录，拷贝并解压
+>
+> ADD	jdk-8u121-linux-x64.tar.gz	/usr/local/
+> ADD	apache-tomcat-9.0.21.tar.gz		/usr/local/
+>
+> RUN 	yum -y install vim
+>
+> ENV		MYPATH		/usr/local
+>
+> #默认工作目录
+>
+> WORKDIR	$MYPATH
+>
+> #配置环境变量
+>
+> ENV		JAVA_HOME	/usr/local/jdk1.8.0_121
+> ENV 	CLASSPATH	$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+> ENV		CATALINA_HOME		/usr/local/apache-tomcat-9.0.21
+> ENV		CATALINA_BASE		/usr/local/apache-tomcat-9.0.21
+> ENV 	PATH	$PATH:$JAVA_HOME/bin:$CATALINA_HOME/lib:$CATALINA_HOME/bin
+>
+> #对外暴露端口
+>
+> EXPOSE	8080
+>
+> CMD	/usr/local/apache-tomcat-9.0.21/bin/startup.sh && tail -F /usr/local/apache-tomcat-9.0.21/bin/logs/catalina.out
+
+​	`sudo docker run -d -p 9080:8080 --name myt9 -v /home/lov/Downloads/dockerTemp/test:/usr/local/apache-tomcat-9.0.21/webapps/test -v /home/lov/Downloads/dockerTemp/logs:/usr/local/apache-tomcat-9.0.21/logs mytomcat:2.0`
+
+​	新建容器，指定端口，挂载多个volume
+
+![1560265848488](./img/1560265848488.png)
+
+![1560265933225](./img/1560265933225.png)
+
 ## Docker常用安装
+
+​	mysql 、redis、jenkins、nginx
 
 ## 本地镜像发布到阿里云
